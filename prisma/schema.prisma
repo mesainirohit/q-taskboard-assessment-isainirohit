@@ -45,9 +45,10 @@ model Project {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  owner       User         @relation("ProjectOwner", fields: [ownerId], references: [id])
+  owner       User              @relation("ProjectOwner", fields: [ownerId], references: [id])
   memberships Membership[]
   tasks       Task[]
+  exports     ProjectExport[]
 
   @@map("projects")
 }
@@ -101,4 +102,26 @@ model Comment {
 
   @@index([taskId, createdAt])
   @@map("comments")
+}
+
+model ProjectExport {
+  id               String   @id @default(cuid())
+  projectId        String   @map("project_id")
+  status           String   @default("pending") // pending, in_progress, completed, failed
+  airtableTableId  String?  @map("airtable_table_id")
+  startedAt        DateTime? @map("started_at")
+  completedAt      DateTime? @map("completed_at")
+  errorMessage     String?   @map("error_message")
+  successCount     Int       @default(0) @map("success_count")
+  failureCount     Int       @default(0) @map("failure_count")
+  failedRecords    Json?     @default("[]") @map("failed_records")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("project_exports")
 }
