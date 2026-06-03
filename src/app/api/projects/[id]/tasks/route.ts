@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { airtableTable } from "@/lib/airtable";
 import { prisma } from "@/lib/prisma";
 import {
   getCurrentUser,
@@ -11,6 +12,16 @@ import {
 import { createTaskSchema } from "@/schemas/task";
 
 type Params = { params: Promise<{ id: string }> };
+
+const mapStatusToAirtable = (status: string): string => {
+  const statusMap: Record<string, string> = {
+    "todo": "Todo",
+    "in_progress": "In Progress",
+    "review": "In Review",
+    "done": "Done",
+  };
+  return statusMap[status.toLowerCase()] || status.toLowerCase();
+};
 
 export async function GET(req: NextRequest, { params }: Params) {
   const user = await getCurrentUser(req);
@@ -84,6 +95,28 @@ export async function POST(req: NextRequest, { params }: Params) {
       assignee: { select: { id: true, name: true, email: true } },
     },
   });
+
+  let airtableId: string | null = null;
+  try {
+    const records = await airtableTable.create([
+      {
+        fields: {
+          Name: task.title,
+          Description: task.description || "",
+          Status: mapStatusToAirtable(status),
+          Assignee: task.assignee?.name || "",
+        },
+      },
+    ]);
+    
+    airtableId = records[0].id;
+    await prisma.task.update({
+      where: { id: task.id },
+      data: { airtableId },
+    });
+  } catch (error) {
+    console.error("Airtable sync error:", error);
+  }
 
   return NextResponse.json({ task }, { status: 201 });
 }
