@@ -55,3 +55,7 @@ export function canEditProject(role: ProjectRole | null | undefined): boolean {
 export function canEditTasks(role: ProjectRole | null | undefined): boolean {
   return role === "admin" || role === "member";
 }
+
+export function canPostComments(role: ProjectRole | null | undefined): boolean {
+  return role === "admin" || role === "member";
+}
